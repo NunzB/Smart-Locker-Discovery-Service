@@ -1,0 +1,8 @@
+services:
+  locker-api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount the data folder so that layout caching behaves correctly between container reboots
+      - ./src/data:/src/data

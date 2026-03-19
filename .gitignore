@@ -1,0 +1,8 @@
+
+.venv
+aux/bridge-auth.json
+doc/aux
+serial-bridge-client
+src/*/__pycache__
+
+src/data/

@@ -1,0 +1,5 @@
+{
+  "_help": "Get username/password from ${BRIDGE_SERVER_URL}/user/login",
+  "username": "",
+  "password": ""
+}
