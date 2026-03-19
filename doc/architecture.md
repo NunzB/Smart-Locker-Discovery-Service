@@ -1,19 +1,19 @@
-# 0. Data from Challenge
+## 0. Data from Challenge
  - Physical Lockers are a matrix of compartments (A...Z rows x 1...N columns). The compartments are labeled row_label + column_number ("A1", "B1" ... "Z1", "AA1" ... "AZ1" ... "BA1" ... "BZ1" ... "CA1" ...)
  - Let's assume each column has a lock controller, with a unique device address, connected to a RS-485 Modbus RTU bus. 
  - Each lock controller drives N locks (e.g. 48, 24, 16). 
  - Let's assume a lock is an item on specific row x column, that belongs to that compartment.
 
 
-# 1. What are the components and what does each one own?
+## 1. What are the components and what does each one own?
 
-## 1.1. Modbus Client
+### 1.1. Modbus Client
 - The component that talks to the serial port from the bridge-server-client. 
 - It should be able to connect, disconnect, send data and receive data. 
 - Should have methods to read and write registers. 
 - Should append CRC to every request and check CRC of every response.
 
-## 1.2. Bus Scanner
+### 1.2. Bus Scanner
 - Component that scans the bus for available boards.
 
 - Method to scan the bus: loops over the addresses 1 to 16. For each address, should read the Board ID register (0x000F). It has a custom blacklist that allows the user to set addresses not to scan. 
@@ -31,7 +31,7 @@
     - LED Time (reg 0x00F8) - Unit seconds. Default 5s.
     - User Data (reg 0x0070 - 0x0079) - Registers available for the app to use.
     
-### Data Structures
+#### Data Structures
 - class BoardInfo:
     - address: int                        # Stores address of the board on the - bus
     - model: Dict[int, str]               # Stores (key = model id, value = model name)
@@ -52,7 +52,7 @@
 - class BoardCounters:
     - IRports: List[int]          # 4 x 16-bit registers for port (1-4).
 
-## 1.3. Layout Builder
+### 1.3. Layout Builder
 - Component that builds the layout of the locker from a list of BoardInfo objects. In the challenge it is not clear how to retrieve the necessary information to figure out the open direction and size of each lock. However, in the json door mapping example it is possible to see that the open direction and size are stored in the mapping. 
 - 2 different approaches:
     - We simplify and build a 2D data structure, where each column is a BoardInfo object and each row is a lock. This means each row is a compartment. 
@@ -76,7 +76,7 @@
         - openDirection: Default value "right"
         - size: Default value "M"
 
-### Data Structures
+#### Data Structures
 - class LockerLayout:
     - columns: list[Column]
 
@@ -96,7 +96,7 @@
 
 
 
-## 1.4. Mapping Store
+### 1.4. Mapping Store
 - The mapping store is responsible for storing the boards found with the Bus Scanner and the layout built by the Layout Builder. It is the "memory" of the system. - For this, it stores data locally in .json files. 
 - This component uses and writes to one User Data register of the boards on the bus. For each board, it reads this User Data register, and if its 0, it considers it a new board. After a successful map update, it writes a specific value to the User Data register of the new boards.
 - On construction, it loads the data from the .json files (if they exist) to internal variables (these variables are considered the old data when updating the mapping with new data).
@@ -116,22 +116,22 @@
     - It updates the two .json files with the new received boards list and layout. It also updates the two variables: boards and layout.
     - (Not Implemented in this component) - At the end of the update, the User Data register 0 is to be written with the value 0xABCD for all the new boards and substitutions. However, this is done in the main app directly, on the endpoint /update.
     
-### Data Structures
+#### Data Structures
 layout: LockerLayout
 boards: List[BoardInfo]
 
 
-## 1.5. Door Service
+### 1.5. Door Service
 - Acts as the application's logic for commanding physical doors. 
 - Receives human-readable string labels (like "A1", "Z3", "AA1") and abstracts away the underlying hardware complexity.
 - Queries the Mapping Store to resolve the label into a specific `boardId` (Modbus Address) and `lockId` (Index on the board).
 - Dispatches the hardware actuation command via the Modbus Client (FC05 - Write Single Coil).
 - Critically, it implements a synchronous polling loop after actuating the lock to verify the physical door state (via FC03) before responding to the caller, ensuring that a "Success" response means the door actually popped open, not just that a signal was sent.
 
-### Known Issues
+#### Known Issues
 - Implemented a close method as well, it effectively closes the lock (verified in serv /ui/bus endpoint) but my endpoint returns a timeout, I believe to be due to the board not updating its lock status register.
 
-## 1.6. Main Apps
+### 1.6. Main Apps
 - There are 3 apps available to run. Contains 2 primary interfaces
     1. **Headless API (`src/main.py`)**: A FastAPI application that acts as a REST interface. It maintains a centralized, stateful singleton (`State`) holding instances of all the core services (Modbus Client, Bus Scanner, Layout Builder, Mapping Store, Door Service), as well as the boards and layout (last_boards, last_layout) retrieved from the last scan. 
     - Manages two different memory spaces: the in-memory state (boards and layout) and the persistent state (boards and layout in .json files). Exposes endpoints:
@@ -158,14 +158,14 @@ boards: List[BoardInfo]
         - Can be run independently of `src/main.py`. Runs solo.
         - Press `h` or `help` to see the available commands.
 
-# 2. What is the data contract between them?
+## 2. What is the data contract between them?
 - **Scanner ↔ Modbus**: Scanner invokes low-level byte frame generation (`read_registers`) through ModbusClient, returning raw bytes.
 - **Scanner ↔ Core Memory**: Scanner parses raw bytes into `BoardInfo` dataclasses (representing ID, hardware limits, config, and 1D boolean array for locks).
 - **Core Memory ↔ Layout Builder**: Layout builder ingests `List[BoardInfo]` and applies heuristics to group them into a 3D structural tree (`LockerLayout` -> `Column` -> `Row` -> `Compartment`).
 - **Core Memory ↔ Mapping Store**: Mapping Store ingests both `BoardInfo` lists and the generated `LockerLayout` to serialize into persistent `.json` files.
 - **Mapping Store ↔ Door Service**: DoorService queries the MappingStore's flattened O(1) dictionary dictionary to fetch `Compartment` metadata (routing info) by string label. 
 
-# 3. How does `open("A1")` flow through the system?
+## 3. How does `open("A1")` flow through the system?
 1. External user issues `POST /open` with payload `{"label": "A1"}`.
 2. FastAPI controller catches the request and passes it to `DoorService.open("A1")`.
 3. `DoorService` requests routing data from `MappingStore`.
@@ -177,11 +177,11 @@ boards: List[BoardInfo]
 9. `DoorService` returns `OpenResult.OK`.
 10. FastAPI responds to the user with `200 OK`.
 
-# 4. What happens if a board that was previously seen disappears from the bus?
+## 4. What happens if a board that was previously seen disappears from the bus?
 When a user manually triggers a bus scan (`POST /scan`), the `BoardScanner` attempts to ping all addresses 1-16. If an address that existed in the cached memory times out, the board is effectively dropped from the volatile `active_boards` list.
 When the user subsequently runs a comparison (`GET /compare`) or triggers a persistence update (`POST /update`), the `MappingStore` diffs the new `active_boards` against its previously loaded JSON state. It detects that an address acts missing, logs a `Board vanished` warning, and appends it to a `disappeared_boards` list. If the layout is explicitly updated, that column's physical mapping is unlinked and completely destroyed from the next system layout.
 
-# 5. What happens if a new board appears that was not in the stored mapping?
+## 5. What happens if a new board appears that was not in the stored mapping?
 During a scan and subsequent persistence logic (`MappingStore.update_from_scan`), the system leverages the Modbus configurable `user_data[0]` register to intelligently handle new boards:
 1. When a new board is picked up, it has an empty `user_data[0]` register of `0x0000`.
 2. The logic compares the board's physical RS-485 address against the known addresses in the old mapping data.
