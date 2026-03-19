@@ -1,8 +1,3 @@
-Architecture and Components
-**Before writing any code**, produce a short document (can be a diagram + bullet points) that answers:
-> There is no single correct answer.
-> The proposal is evaluated on clarity of boundaries and completeness of reasoning
-
 # 0. Data from Challenge
  - Physical Lockers are a matrix of compartments (A...Z rows x 1...N columns). The compartments are labeled row_label + column_number ("A1", "B1" ... "Z1", "AA1" ... "AZ1" ... "BA1" ... "BZ1" ... "CA1" ...)
  - Let's assume each column has a lock controller, with a unique device address, connected to a RS-485 Modbus RTU bus. 
