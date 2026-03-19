@@ -3,6 +3,7 @@
 aux/bridge-auth.json
 doc/aux
 serial-bridge-client
-src/*/__pycache__
 
-src/data/
+
+src/data/locker_layout.json
+src/data/locker_boards.json
