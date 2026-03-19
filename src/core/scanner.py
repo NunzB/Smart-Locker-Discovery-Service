@@ -26,8 +26,8 @@ class BoardScanner:
         self.client = modbus_client
 
         # Address blacklist - Add addresses not to scan
-        self.blacklist: List[int] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
-        # self.blacklist: List[int] = []
+        # self.blacklist: List[int] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+        self.blacklist: List[int] = []
 
     def scan_bus(self) -> List[BoardInfo]:
         """Scans addresses 1 to 16 (DIP 0-15 + 1) to find active boards on the bus."""
