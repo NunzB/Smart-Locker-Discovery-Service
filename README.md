@@ -70,6 +70,11 @@ Run the service script. It will automatically initialize a sandboxed `.venv`, fe
 ./start_service.sh
 ```
 
+As an alternative you can run the API in docker since it exposes the API on Host port 8000:
+```bash
+docker compose up --build
+```
+
 ### Testing the Service (API Client)
 In a second terminal window, run the native API client to talk to the local background server:
 ```bash
@@ -87,3 +92,41 @@ If you want to debug, test new features, or bypass the HTTP API entirely to dire
 ```bash
 ./start_standalone_repl.sh
 ```
+
+
+
+###
+# Suggested commands for a thorough test of the service
+###
+
+### This section assumes you have either the API + REPL client or the REPL standalone app running. In the terminal running the REPL:
+
+#### 1. type `h` or `help` to see the available commands.
+
+#### 2. type `s` or `scan` to scan the bus, discover active boards and build the layout, and save the discovered boards and built layout to app state memory.
+
+#### 3. type `sb` or `show_boards` to see the discovered boards stored in app state memory.
+
+#### 4. type `sl` or `show_layout` to see the built layout stored in app state memory.
+
+#### 5. type `ssb` or `show_stored_boards` to see the boards stored in persistent storage (.json file).
+
+#### 6. type `ssl` or `show_stored_layout` to see the layout stored in persistent storage (.json file).
+
+#### 7. type `c` or `compare` to compare the app state boards with the persistent storage boards, this identifies new boards, substitutions or disappeared boards.
+
+#### 8. type `u` or `update` to update the persistent storage boards and layout  data with the app state boards and layout data. Upon updating the persistent storage, this command also writes the value 0xABCD to the User Data Register addr 0 of each new or substituted board.
+
+#### 9. type `s` or `scan` to re-scan the bus. This will already read the updated User Data Register.
+
+#### 10. type `c` or `compare` to verify that the app state currently is in sync with the persistent storage boards and layout data. No boards should be reported as new, substituted or disappeared.
+
+#### 11. type `o A1` or `open A1` to open the lock in compartment A1. If A1 is not a suitablle compartment, use an approppriate according to the current bus state.
+
+#### 12. type `close A1` or `close A1` to close the lock in compartment A1. This command effectively closes the lock, but the app doesn't recognize it as a successful command because it polls the lock status register to verify the lock is closed, but at the current time the lock status register is not updated by the board after the lock being closed. However in the /ui/bus endpoint it is visible the closing behavior.
+
+#### 13. type `r 1` or `reset 1` to reset the user data register of the board with address 0 to 0x0000. This command is useful to test the detection of new boards. You need to perform a new scan to have in app state the board with the user data reg reset. 
+
+#### 14. type `d` or `dummy` to add dummy boards to app state memory. This is suitable when a single board is connected on the bus using addr 0. This command adds 3 more boards to app state memory, the boards are on addresses 2, 3 and 4. Board on addr 4 is added with the User Data Register set to 0xABCD. 
+
+Now you can keep using the previous commands and go through different situations to identify new boards, substituted boards, disappeared boards, open/close locks, view layouts, etc...

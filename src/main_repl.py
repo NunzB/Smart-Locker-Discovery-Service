@@ -121,10 +121,13 @@ def run_repl(client: ModbusClient, scanner: BoardScanner, builder: LayoutBuilder
                     b2 = copy.deepcopy(boards[0])
                     b2.address = 2
                     boards.append(b2)
-
                     b3 = copy.deepcopy(boards[0])
                     b3.address = 3
                     boards.append(b3)
+                    b4 = copy.deepcopy(boards[0])
+                    b4.address = 4
+                    b4.config.user_data[0] = 0xABCD
+                    boards.append(b4)
 
                     logger.info(f"Added dummy boards.")
                 else:
